@@ -2,29 +2,138 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Planner</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Planner v2</title>
+  <style>
+    body { font-family: Arial; margin:0; background:#f5f6fa; }
+    header { background:#2f3640; color:white; padding:10px; display:flex; justify-content:space-between; }
+    nav button { margin-right:10px; padding:8px 12px; border:none; cursor:pointer; }
+    .active { background:#00a8ff; color:white; }
+
+    .container { padding:15px; }
+
+    .task { background:white; padding:10px; margin-bottom:10px; border-left:5px solid gray; }
+    .status-not-started { border-color:gray; }
+    .status-progress { border-color:blue; }
+    .status-delayed { border-color:red; }
+    .status-done { border-color:green; }
+
+    .progress-bar { height:6px; background:#ddd; margin-top:5px; }
+    .progress { height:6px; background:green; }
+
+    .subtasks { margin-left:15px; }
+
+    .btn { padding:6px 10px; border:none; cursor:pointer; border-radius:6px; }
+    .btn-primary { background:#0984e3; color:white; }
+    .btn-small { font-size:12px; margin-top:5px; }
+
+    /* Modal */
+    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); justify-content:center; align-items:center; }
+    .modal-content { background:white; padding:20px; border-radius:10px; width:300px; }
+    .modal input { width:100%; padding:8px; margin-bottom:10px; }
+  </style>
 </head>
 <body>
 
 <header>
-  <h1>📅 Planner</h1>
-
-  <div class="filters">
-    <select id="yearFilter"></select>
-    <select id="monthFilter"></select>
-  </div>
+  <h2>Planner</h2>
+  <nav>
+    <button onclick="setView('dashboard')" id="btnDashboard" class="active">Home</button>
+    <button onclick="setView('tasks')" id="btnTasks">Tasks</button>
+  </nav>
 </header>
 
-<section class="add-task">
+<div class="container" id="dashboardView"></div>
+
+<div class="container" id="tasksView" style="display:none;">
   <input type="text" id="taskName" placeholder="Nome da task">
   <input type="date" id="startDate">
   <input type="date" id="endDate">
-  <button onclick="addTask()">Adicionar Task</button>
-</section>
+  <button class="btn btn-primary" onclick="addTask()">Adicionar</button>
+  <div id="taskContainer"></div>
+</div>
 
-<section id="taskContainer"></section>
+<!-- Modal -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>Nova Subtask</h3>
+    <input type="text" id="subtaskInput">
+    <button class="btn btn-primary" onclick="saveSubtask()">Salvar</button>
+  </div>
+</div>
 
-<script src="script.js"></script>
+<script>
+let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+let currentTaskId = null;
+
+function save() {
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+}
+
+function setView(view) {
+  document.getElementById('dashboardView').style.display = view === 'dashboard' ? 'block' : 'none';
+  document.getElementById('tasksView').style.display = view === 'tasks' ? 'block' : 'none';
+  document.getElementById('btnDashboard').classList.toggle('active', view === 'dashboard');
+  document.getElementById('btnTasks').classList.toggle('active', view === 'tasks');
+}
+
+function addTask() {
+  const name = document.getElementById('taskName').value;
+  const start = document.getElementById('startDate').value;
+  const end = document.getElementById('endDate').value;
+  
+  if (!name) return;
+  
+  tasks.push({ id: Date.now(), name, start, end, status: 'not-started', subtasks: [] });
+  save();
+  renderTasks();
+  document.getElementById('taskName').value = '';
+}
+
+function renderTasks() {
+  const container = document.getElementById('taskContainer');
+  container.innerHTML = tasks.map(task => `
+    <div class="task status-${task.status}">
+      <div><strong>${task.name}</strong></div>
+      <div>${task.start} até ${task.end}</div>
+      <select onchange="updateStatus(${task.id}, this.value)">
+        <option value="not-started" ${task.status === 'not-started' ? 'selected' : ''}>Não iniciado</option>
+        <option value="progress" ${task.status === 'progress' ? 'selected' : ''}>Em progresso</option>
+        <option value="delayed" ${task.status === 'delayed' ? 'selected' : ''}>Atrasado</option>
+        <option value="done" ${task.status === 'done' ? 'selected' : ''}>Concluído</option>
+      </select>
+      <button class="btn btn-small" onclick="openSubtaskModal(${task.id})">+ Subtask</button>
+      <button class="btn btn-small" onclick="deleteTask(${task.id})">Deletar</button>
+    </div>
+  `).join('');
+}
+
+function updateStatus(id, status) {
+  tasks.find(t => t.id === id).status = status;
+  save();
+  renderTasks();
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  save();
+  renderTasks();
+}
+
+function openSubtaskModal(id) {
+  currentTaskId = id;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function saveSubtask() {
+  const input = document.getElementById('subtaskInput');
+  tasks.find(t => t.id === currentTaskId).subtasks.push(input.value);
+  save();
+  renderTasks();
+  document.getElementById('modal').style.display = 'none';
+  input.value = '';
+}
+
+renderTasks();
+</script>
 </body>
 </html>
