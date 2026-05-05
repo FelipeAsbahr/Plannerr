@@ -12,7 +12,7 @@ class TaskManager {
     }
 
     bindEvents() {
-        // Navigation
+        // Navigation tabs
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -29,14 +29,22 @@ class TaskManager {
             this.saveTask();
         });
 
-        // Close modal on backdrop click
+        // Modal backdrop close
         document.getElementById('taskModal').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) {
-                this.closeModal();
-            }
+            if (e.target === e.currentTarget) this.closeModal();
         });
 
-        // Month filter default to current month
+        // Month filter
+        document.getElementById('monthFilter').addEventListener('change', () => {
+            this.renderTasksList();
+            this.renderDashboard();
+        });
+
+        document.getElementById('statusFilter').addEventListener('change', () => {
+            this.renderTasksList();
+        });
+
+        // Set default month
         const now = new Date();
         const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
         document.getElementById('monthFilter').value = currentMonth;
@@ -53,7 +61,7 @@ class TaskManager {
         setTimeout(() => toast.classList.remove('show'), 3000);
     }
 
-    // Task CRUD
+    // ===== TASK OPERATIONS =====
     addTask(taskData) {
         const task = {
             id: Date.now(),
@@ -64,7 +72,7 @@ class TaskManager {
         this.tasks.push(task);
         this.saveToStorage();
         this.render();
-        this.showToast('Tarefa criada com sucesso!');
+        this.showToast('✅ Tarefa criada com sucesso!');
     }
 
     updateTask(id, taskData) {
@@ -73,16 +81,16 @@ class TaskManager {
             this.tasks[index] = { ...this.tasks[index], ...taskData };
             this.saveToStorage();
             this.render();
-            this.showToast('Tarefa atualizada com sucesso!');
+            this.showToast('✅ Tarefa atualizada!');
         }
     }
 
     deleteTask(id) {
-        if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
+        if (confirm('🗑️ Tem certeza que deseja excluir esta tarefa?')) {
             this.tasks = this.tasks.filter(t => t.id !== id);
             this.saveToStorage();
             this.render();
-            this.showToast('Tarefa excluída!');
+            this.showToast('🗑️ Tarefa excluída!');
         }
     }
 
@@ -95,7 +103,7 @@ class TaskManager {
         }
     }
 
-    // Calculations
+    // ===== CALCULATIONS =====
     calculateProgress(task) {
         if (!task.subtasks?.length) return 0;
         const completed = task.subtasks.filter(s => s.completed).length;
@@ -111,7 +119,6 @@ class TaskManager {
         const elapsed = Math.max(0, now - start);
         
         if (totalDuration <= 0) return 0;
-        
         const progress = Math.min((elapsed / totalDuration) * 100, 100);
         return Math.round(progress);
     }
@@ -127,7 +134,7 @@ class TaskManager {
         return 'not-started';
     }
 
-    // Rendering
+    // ===== RENDERING =====
     render() {
         this.renderDashboard();
         this.renderTasksList();
@@ -136,10 +143,6 @@ class TaskManager {
 
     renderDashboard() {
         const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
         const currentTasks = this.tasks.filter(task => {
             const start = new Date(task.startDate);
             const end = new Date(task.endDate);
@@ -148,6 +151,7 @@ class TaskManager {
 
         const upcomingTasks = this.tasks.filter(task => {
             const start = new Date(task.startDate);
+            const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
             return start >= nextMonth && start <= new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0);
         });
 
@@ -158,7 +162,7 @@ class TaskManager {
     renderTasksContainer(containerId, tasks) {
         const container = document.getElementById(containerId);
         if (!tasks.length) {
-            container.innerHTML = '<p style="text-align: center; color: #a0aec0; padding: 40px;">Nenhuma tarefa encontrada</p>';
+            container.innerHTML = '<div style="text-align: center; color: #a0aec0; padding: 40px;"><i class="fas fa-inbox" style="font-size: 3em; margin-bottom: 15px; opacity: 0.5;"></i><p>Nenhuma tarefa encontrada</p></div>';
             return;
         }
 
@@ -166,41 +170,24 @@ class TaskManager {
             const status = this.getStatus(task);
             const actualProgress = this.calculateProgress(task);
             const expectedProgress = this.calculateExpectedProgress(task);
-            const startDate = new Date(task.startDate).toLocaleDateString('pt-BR');
-            const endDate = new Date(task.endDate).toLocaleDateString('pt-BR');
 
             return `
                 <div class="task-card ${status}" onclick="taskManager.editTask(${task.id})">
                     <div class="task-header">
                         <div class="task-title">${task.name}</div>
-                        <span class="task-status status-${status}">
-                            ${this.getStatusLabel(status)}
-                        </span>
+                        <span class="task-status status-${status}">${this.getStatusLabel(status)}</span>
                     </div>
                     <div class="progress-container">
                         <div class="progress-item">
-                            <div class="progress-label">
-                                <span>Esperado</span>
-                                <span>${expectedProgress}%</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill progress-expected" style="width: ${expectedProgress}%"></div>
-                            </div>
+                            <div class="progress-label"><span>Esperado</span><span>${expectedProgress}%</span></div>
+                            <div class="progress-bar"><div class="progress-fill progress-expected" style="width: ${expectedProgress}%"></div></div>
                         </div>
                         <div class="progress-item">
-                            <div class="progress-label">
-                                <span>Atual</span>
-                                <span>${actualProgress}%</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill progress-actual" style="width: ${actualProgress}%"></div>
-                            </div>
+                            <div class="progress-label"><span>Atual</span><span>${actualProgress}%</span></div>
+                            <div class="progress-bar"><div class="progress-fill progress-actual" style="width: ${actualProgress}%"></div></div>
                         </div>
                     </div>
-                    <div class="dates">
-                        ${startDate} - ${endDate}
-                    </div>
-                    ${task.description ? `<p style="margin-top: 10px; color: #718096;">${task.description}</p>` : ''}
+                    <div class="dates">${new Date(task.startDate).toLocaleDateString('pt-BR')} - ${new Date(task.endDate).toLocaleDateString('pt-BR')}</div>
                 </div>
             `;
         }).join('');
@@ -209,39 +196,43 @@ class TaskManager {
     renderTasksList() {
         const container = document.getElementById('tasksList');
         if (!this.tasks.length) {
-            container.innerHTML = '<p style="text-align: center; color: #a0aec0; padding: 60px;">Nenhuma tarefa cadastrada. Crie sua primeira tarefa!</p>';
+            container.innerHTML = '<div style="text-align: center; color: #a0aec0; padding: 80px;"><i class="fas fa-tasks" style="font-size: 4em; margin-bottom: 20px; opacity: 0.5;"></i><h3>Comece criando sua primeira tarefa!</h3></div>';
             return;
         }
 
         const filteredTasks = this.filterTasksForList();
-        container.innerHTML = filteredTasks.map(task => {
-            const status = this.getStatus(task);
-            const actualProgress = this.calculateProgress(task);
-            const expectedProgress = this.calculateExpectedProgress(task);
+        container.innerHTML = filteredTasks.map(task => this.renderTaskItem(task)).join('');
+    }
 
-            return `
-                <div class="task-item">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                        <div>
-                            <h3 style="color: #2d3748; margin-bottom: 5px;">${task.name}</h3>
-                            <span class="task-status status-${status}" style="font-size: 0.9em;">${this.getStatusLabel(status)}</span>
+    renderTaskItem(task) {
+        const status = this.getStatus(task);
+        const actualProgress = this.calculateProgress(task);
+        const expectedProgress = this.calculateExpectedProgress(task);
+
+        return `
+            <div class="task-item">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <div>
+                        <h3 style="color: #2d3748; margin-bottom: 8px;">${task.name}</h3>
+                        <span class="task-status status-${status}" style="font-size: 0.9em; padding: 4px 12px;">${this.getStatusLabel(status)}</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.9em; color: #718096; margin-bottom: 8px;">
+                            ${new Date(task.startDate).toLocaleDateString('pt-BR')} - ${new Date(task.endDate).toLocaleDateString('pt-BR')}
                         </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 0.9em; color: #718096; margin-bottom: 5px;">
-                                ${new Date(task.startDate).toLocaleDateString('pt-BR')} - ${new Date(task.endDate).toLocaleDateString('pt-BR')}
-                            </div>
-                            <div style="font-size: 0.85em; color: #718096;">
-                                Progresso: ${actualProgress}% / ${expectedProgress}% esperado
-                            </div>
+                        <div style="font-size: 0.9em; color: #48bb78; font-weight: 600;">
+                            ${actualProgress}% / ${expectedProgress}% esperado
                         </div>
                     </div>
-                    ${task.description ? `<p style="color: #718096; margin-bottom: 15px;">${task.description}</p>` : ''}
-                    
-                    ${task.subtasks?.length ? `
-                        <div style="margin-top: 15px; padding: 15px; background: #f7fafc; border-radius: 10px;">
-                            <strong style="display: block; margin-bottom: 10px;">Subtarefas (${actualProgress}% concluídas):</strong>
+                </div>
+                ${task.description ? `<p style="color: #718096; margin-bottom: 20px; padding: 15px; background: #f7fafc; border-radius: 10px;">${task.description}</p>` : ''}
+                
+                ${task.subtasks?.length ? `
+                    <div style="margin-bottom: 25px;">
+                        <div style="font-weight: 600; margin-bottom: 12px; color: #4a5568;">📋 Subtarefas (${actualProgress}% concluídas)</div>
+                        <div style="max-height: 200px; overflow-y: auto;">
                             ${task.subtasks.map((subtask, index) => `
-                                <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                                <div style="display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 8px; background: white; border-radius: 8px; border-left: 4px solid ${subtask.completed ? '#48bb78' : '#e2e8f0'};">
                                     <input type="checkbox" ${subtask.completed ? 'checked' : ''} 
                                            onchange="taskManager.toggleSubtask(${task.id}, ${index})"
                                            style="width: 18px; height: 18px; accent-color: #667eea;">
@@ -251,21 +242,19 @@ class TaskManager {
                                 </div>
                             `).join('')}
                         </div>
-                    ` : ''}
-                    
-                    <div class="task-actions" style="margin-top: 20px;">
-                        <button class="btn-primary" onclick="taskManager.editTask(${task.id}); event.stopPropagation();" 
-                                style="padding: 10px 20px; font-size: 0.9em;">
-                            <i class="fas fa-edit"></i> Editar
-                        </button>
-                        <button class="btn-secondary" onclick="taskManager.deleteTask(${task.id}); event.stopPropagation();" 
-                                style="padding: 10px 20px; font-size: 0.9em;">
-                            <i class="fas fa-trash"></i> Excluir
-                        </button>
                     </div>
+                ` : ''}
+                
+                <div class="task-actions">
+                    <button class="btn-primary" onclick="taskManager.editTask(${task.id}); event.stopPropagation();" style="padding: 12px 24px;">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn-secondary" onclick="taskManager.deleteTask(${task.id}); event.stopPropagation();" style="padding: 12px 24px;">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
                 </div>
-            `;
-        }).join('');
+            </div>
+        `;
     }
 
     filterTasksForList() {
@@ -284,7 +273,6 @@ class TaskManager {
             }
 
             const statusMatch = !statusFilter || this.getStatus(task) === statusFilter;
-
             return inDateRange && statusMatch;
         });
     }
@@ -303,44 +291,127 @@ class TaskManager {
         document.getElementById('avgProgress').textContent = avgProgress + '%';
     }
 
-    // Modal Management - CORRIGIDO
+    // ===== MODAL OPERATIONS - SUBTASKS REFEITAS =====
     showAddTaskModal() {
         this.editingTaskId = null;
-        document.getElementById('modalTitle').textContent = 'Nova Tarefa';
+        document.getElementById('modalTitle').textContent = '📝 Nova Tarefa';
         this.populateForm(null);
         document.getElementById('taskModal').classList.add('active');
-        document.getElementById('taskModal').scrollTop = 0;
     }
 
     editTask(id) {
         const task = this.tasks.find(t => t.id === id);
         if (task) {
             this.editingTaskId = id;
-            document.getElementById('modalTitle').textContent = 'Editar Tarefa';
+            document.getElementById('modalTitle').textContent = '✏️ Editar Tarefa';
             this.populateForm(task);
             document.getElementById('taskModal').classList.add('active');
         }
     }
 
     populateForm(task) {
-        // Limpar formulário
+        // Preencher campos principais
         document.getElementById('taskName').value = task?.name || '';
         document.getElementById('startDate').value = task?.startDate || '';
         document.getElementById('endDate').value = task?.endDate || '';
         document.getElementById('description').value = task?.description || '';
         
-        // Limpar subtarefas existentes
+        // Renderizar subtasks
+        this.renderSubtasksInModal(task?.subtasks || []);
+    }
+
+    renderSubtasksInModal(subtasks = []) {
         const container = document.getElementById('subtasksContainer');
-        container.innerHTML = '';
         
-        // Adicionar subtarefas existentes
-        if (task?.subtasks && task.subtasks.length > 0) {
-            task.subtasks.forEach(subtask => {
-                this.addSubtask(subtask.name, subtask.completed);
-            });
+        if (subtasks.length === 0) {
+            container.innerHTML = `
+                <div class="subtasks-container empty" onclick="taskManager.addSubtask()">
+                    <i class="fas fa-plus-circle" style="font-size: 2.5em; margin-bottom: 10px; color: #cbd5e0;"></i>
+                    <p>Clique para adicionar a primeira subtarefa</p>
+                    <small>ou use o botão abaixo</small>
+                </div>
+                <button type="button" class="subtask-add-btn" onclick="taskManager.addSubtask()">
+                    <i class="fas fa-plus"></i> Adicionar Subtarefa
+                </button>
+            `;
+            return;
+        }
+
+        // Renderizar subtasks existentes + botão adicionar
+        container.innerHTML = subtasks.map((subtask, index) => this.renderSubtaskItem(subtask, index)).join('') + `
+            <div style="margin-top: 15px;">
+                <button type="button" class="subtask-add-btn" onclick="taskManager.addSubtask()">
+                    <i class="fas fa-plus"></i> + Nova Subtarefa
+                </button>
+            </div>
+            <div class="subtasks-counter">
+                ${subtasks.length} subtarefa${subtasks.length !== 1 ? 's' : ''} adicionada${subtasks.length !== 1 ? 's' : ''}
+            </div>
+        `;
+    }
+
+    renderSubtaskItem(subtask, index) {
+        return `
+            <div class="subtask-item">
+                <input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''}>
+                <input type="text" class="subtask-input ${subtask.completed ? 'completed' : ''}" 
+                       value="${subtask.name}" placeholder="Digite o nome da subtarefa"
+                       onchange="taskManager.updateSubtaskVisual(this)"
+                       onkeyup="taskManager.updateSubtaskVisual(this)">
+                <button type="button" class="subtask-delete" onclick="taskManager.removeSubtask(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+    }
+
+    addSubtask(name = '', completed = false) {
+        const container = document.getElementById('subtasksContainer');
+        const newSubtaskHtml = this.renderSubtaskItem({name, completed}, 0);
+        
+        // Se estava vazio, substituir completamente
+        if (container.querySelector('.subtasks-container.empty')) {
+            container.innerHTML = newSubtaskHtml + `
+                <div style="margin-top: 15px;">
+                    <button type="button" class="subtask-add-btn" onclick="taskManager.addSubtask()">
+                        <i class="fas fa-plus"></i> + Nova Subtarefa
+                    </button>
+                </div>
+            `;
         } else {
-            // Sempre adicionar uma subtarefa vazia para facilitar
-            this.addSubtask('', false);
+            // Inserir antes do botão adicionar
+            const addButton = container.querySelector('.subtask-add-btn');
+            if (addButton) {
+                addButton.insertAdjacentHTML('beforebegin', newSubtaskHtml);
+            } else {
+                container.insertAdjacentHTML('beforeend', newSubtaskHtml);
+            }
+        }
+        
+        // Focar no novo input
+        const newInput = container.querySelector('.subtask-input:last-of-type');
+        if (newInput) newInput.focus();
+    }
+
+    updateSubtaskVisual(input) {
+        const item = input.closest('.subtask-item');
+        const checkbox = item.querySelector('.subtask-checkbox');
+        
+        if (checkbox.checked) {
+            input.classList.add('completed');
+        } else {
+            input.classList.remove('completed');
+        }
+    }
+
+    removeSubtask(button) {
+        const subtaskItem = button.closest('.subtask-item');
+        subtaskItem.remove();
+        
+        // Re-renderizar se ficou vazio
+        const remaining = document.querySelectorAll('.subtask-item');
+        if (remaining.length === 0) {
+            this.renderSubtasksInModal([]);
         }
     }
 
@@ -353,26 +424,21 @@ class TaskManager {
             subtasks: Array.from(document.querySelectorAll('.subtask-item')).map(item => {
                 const checkbox = item.querySelector('.subtask-checkbox');
                 const input = item.querySelector('.subtask-input');
-                const name = input.value.trim();
                 return {
-                    name: name,
+                    name: input.value.trim(),
                     completed: checkbox.checked
                 };
-            }).filter(s => s.name) // Remove subtarefas vazias
+            }).filter(s => s.name.length > 0) // Remove vazias
         };
 
         // Validações
-        if (!taskData.name) {
-            this.showToast('Nome da tarefa é obrigatório!', true);
-            return;
-        }
-        if (!taskData.startDate || !taskData.endDate) {
-            this.showToast('Datas são obrigatórias!', true);
-            return;
-        }
+        if (!taskData.name) return this.showToast('❌ Nome da tarefa é obrigatório!', true);
+        if (!taskData.startDate || !taskData.endDate) return this.showToast('❌ Datas são obrigatórias!', true);
         if (new Date(taskData.startDate) > new Date(taskData.endDate)) {
-            this.showToast('Data de início deve ser anterior à data de fim!', true);
-            return;
+            return this.showToast('❌ Data início deve ser anterior à data fim!', true);
+        }
+        if (taskData.subtasks.length === 0) {
+            return this.showToast('❌ Adicione pelo menos uma subtarefa!', true);
         }
 
         if (this.editingTaskId) {
@@ -388,37 +454,10 @@ class TaskManager {
         document.getElementById('taskModal').classList.remove('active');
     }
 
-    // Subtasks - CORRIGIDO
-    addSubtask(name = '', completed = false) {
-        const container = document.getElementById('subtasksContainer');
-        const subtaskId = Date.now();
-        const subtaskHtml = `
-            <div class="subtask-item">
-                <input type="checkbox" class="subtask-checkbox" ${completed ? 'checked' : ''}>
-                <input type="text" class="subtask-input" value="${name}" placeholder="Digite o nome da subtarefa">
-                <button type="button" class="subtask-delete" onclick="taskManager.removeSubtask(this)">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', subtaskHtml);
-    }
-
-    removeSubtask(button) {
-        const subtaskItem = button.closest('.subtask-item');
-        subtaskItem.remove();
-        
-        // Se não sobrou nenhuma subtarefa, adicionar uma vazia
-        const remainingSubtasks = document.querySelectorAll('.subtask-item');
-        if (remainingSubtasks.length === 0) {
-            this.addSubtask('', false);
-        }
-    }
-
     getStatusLabel(status) {
         const labels = {
             'not-started': 'Não Iniciada',
-            'in-progress': 'Em Andamento',
+            'in-progress': 'Em Andamento', 
             'completed': 'Concluída',
             'overdue': 'Atrasada'
         };
@@ -426,21 +465,13 @@ class TaskManager {
     }
 }
 
-// Global functions for onclick handlers
+// Inicialização
 let taskManager;
-
 document.addEventListener('DOMContentLoaded', () => {
     taskManager = new TaskManager();
+    window.taskManager = taskManager;
 });
 
-// Expor funções globais para onclick handlers
-window.taskManager = taskManager || {};
-window.filterTasks = () => {
-    if (taskManager) {
-        taskManager.renderTasksList();
-        taskManager.renderDashboard();
-    }
-};
-window.showAddTaskModal = () => {
-    if (taskManager) taskManager.showAddTaskModal();
-};
+// Funções globais
+window.filterTasks = () => taskManager?.render();
+window.showAddTaskModal = () => taskManager?.showAddTaskModal();
