@@ -29,8 +29,17 @@ class TaskManager {
             this.saveTask();
         });
 
+        // Close modal on backdrop click
+        document.getElementById('taskModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                this.closeModal();
+            }
+        });
+
         // Month filter default to current month
-        document.getElementById('monthFilter').valueAsDate = new Date();
+        const now = new Date();
+        const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        document.getElementById('monthFilter').value = currentMonth;
     }
 
     saveToStorage() {
@@ -69,10 +78,12 @@ class TaskManager {
     }
 
     deleteTask(id) {
-        this.tasks = this.tasks.filter(t => t.id !== id);
-        this.saveToStorage();
-        this.render();
-        this.showToast('Tarefa excluída!');
+        if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
+            this.tasks = this.tasks.filter(t => t.id !== id);
+            this.saveToStorage();
+            this.render();
+            this.showToast('Tarefa excluída!');
+        }
     }
 
     toggleSubtask(taskId, subtaskIndex) {
@@ -97,9 +108,9 @@ class TaskManager {
         const end = new Date(task.endDate);
         
         const totalDuration = end - start;
-        const elapsed = now - start;
+        const elapsed = Math.max(0, now - start);
         
-        if (totalDuration <= 0 || elapsed <= 0) return 0;
+        if (totalDuration <= 0) return 0;
         
         const progress = Math.min((elapsed / totalDuration) * 100, 100);
         return Math.round(progress);
@@ -109,7 +120,6 @@ class TaskManager {
         const now = new Date();
         const endDate = new Date(task.endDate);
         const progress = this.calculateProgress(task);
-        const expectedProgress = this.calculateExpectedProgress(task);
 
         if (progress === 100) return 'completed';
         if (now > endDate && progress < 100) return 'overdue';
@@ -214,7 +224,7 @@ class TaskManager {
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
                         <div>
                             <h3 style="color: #2d3748; margin-bottom: 5px;">${task.name}</h3>
-                            <span class="task-status status-${status}">${this.getStatusLabel(status)}</span>
+                            <span class="task-status status-${status}" style="font-size: 0.9em;">${this.getStatusLabel(status)}</span>
                         </div>
                         <div style="text-align: right;">
                             <div style="font-size: 0.9em; color: #718096; margin-bottom: 5px;">
@@ -228,27 +238,28 @@ class TaskManager {
                     ${task.description ? `<p style="color: #718096; margin-bottom: 15px;">${task.description}</p>` : ''}
                     
                     ${task.subtasks?.length ? `
-                        <div style="margin-top: 15px;">
-                            <strong>Subtarefas (${actualProgress}% concluídas):</strong>
-                            <div style="margin-top: 10px;">
-                                ${task.subtasks.map((subtask, index) => `
-                                    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
-                                        <input type="checkbox" ${subtask.completed ? 'checked' : ''} 
-                                               onchange="taskManager.toggleSubtask(${task.id}, ${index})">
-                                        <span style="flex: 1; ${subtask.completed ? 'text-decoration: line-through; color: #a0aec0;' : ''}">
-                                            ${subtask.name}
-                                        </span>
-                                    </div>
-                                `).join('')}
-                            </div>
+                        <div style="margin-top: 15px; padding: 15px; background: #f7fafc; border-radius: 10px;">
+                            <strong style="display: block; margin-bottom: 10px;">Subtarefas (${actualProgress}% concluídas):</strong>
+                            ${task.subtasks.map((subtask, index) => `
+                                <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                                    <input type="checkbox" ${subtask.completed ? 'checked' : ''} 
+                                           onchange="taskManager.toggleSubtask(${task.id}, ${index})"
+                                           style="width: 18px; height: 18px; accent-color: #667eea;">
+                                    <span style="flex: 1; ${subtask.completed ? 'text-decoration: line-through; color: #a0aec0;' : ''}">
+                                        ${subtask.name}
+                                    </span>
+                                </div>
+                            `).join('')}
                         </div>
                     ` : ''}
                     
-                    <div class="task-actions">
-                        <button class="btn-primary" onclick="taskManager.editTask(${task.id})" style="padding: 8px 16px; font-size: 0.9em;">
+                    <div class="task-actions" style="margin-top: 20px;">
+                        <button class="btn-primary" onclick="taskManager.editTask(${task.id}); event.stopPropagation();" 
+                                style="padding: 10px 20px; font-size: 0.9em;">
                             <i class="fas fa-edit"></i> Editar
                         </button>
-                        <button class="btn-secondary" onclick="taskManager.deleteTask(${task.id})" style="padding: 8px 16px; font-size: 0.9em;">
+                        <button class="btn-secondary" onclick="taskManager.deleteTask(${task.id}); event.stopPropagation();" 
+                                style="padding: 10px 20px; font-size: 0.9em;">
                             <i class="fas fa-trash"></i> Excluir
                         </button>
                     </div>
@@ -264,11 +275,13 @@ class TaskManager {
         return this.tasks.filter(task => {
             const start = new Date(task.startDate);
             const end = new Date(task.endDate);
-            const filterDate = monthFilter ? new Date(monthFilter + '-01') : new Date();
-
-            const inDateRange = !monthFilter || 
-                (start <= new Date(filterDate.getFullYear(), filterDate.getMonth() + 1, 0) &&
-                 end >= new Date(filterDate.getFullYear(), filterDate.getMonth(), 1));
+            
+            let inDateRange = true;
+            if (monthFilter) {
+                const filterDate = new Date(monthFilter + '-01');
+                const monthEnd = new Date(filterDate.getFullYear(), filterDate.getMonth() + 1, 0);
+                inDateRange = start <= monthEnd && end >= filterDate;
+            }
 
             const statusMatch = !statusFilter || this.getStatus(task) === statusFilter;
 
@@ -290,12 +303,13 @@ class TaskManager {
         document.getElementById('avgProgress').textContent = avgProgress + '%';
     }
 
-    // Modal Management
+    // Modal Management - CORRIGIDO
     showAddTaskModal() {
         this.editingTaskId = null;
         document.getElementById('modalTitle').textContent = 'Nova Tarefa';
         this.populateForm(null);
         document.getElementById('taskModal').classList.add('active');
+        document.getElementById('taskModal').scrollTop = 0;
     }
 
     editTask(id) {
@@ -309,35 +323,57 @@ class TaskManager {
     }
 
     populateForm(task) {
+        // Limpar formulário
         document.getElementById('taskName').value = task?.name || '';
         document.getElementById('startDate').value = task?.startDate || '';
         document.getElementById('endDate').value = task?.endDate || '';
         document.getElementById('description').value = task?.description || '';
         
+        // Limpar subtarefas existentes
         const container = document.getElementById('subtasksContainer');
         container.innerHTML = '';
         
-        if (task?.subtasks) {
-            task.subtasks.forEach((subtask, index) => {
+        // Adicionar subtarefas existentes
+        if (task?.subtasks && task.subtasks.length > 0) {
+            task.subtasks.forEach(subtask => {
                 this.addSubtask(subtask.name, subtask.completed);
             });
         } else {
-            this.addSubtask();
+            // Sempre adicionar uma subtarefa vazia para facilitar
+            this.addSubtask('', false);
         }
     }
 
     saveTask() {
         const taskData = {
-            name: document.getElementById('taskName').value,
+            name: document.getElementById('taskName').value.trim(),
             startDate: document.getElementById('startDate').value,
             endDate: document.getElementById('endDate').value,
-            description: document.getElementById('description').value,
-            subtasks: Array.from(document.querySelectorAll('.subtask-input'))
-                .map(input => ({
-                    name: input.value,
-                    completed: input.closest('.subtask-item').querySelector('.subtask-checkbox').checked
-                })).filter(s => s.name.trim())
+            description: document.getElementById('description').value.trim(),
+            subtasks: Array.from(document.querySelectorAll('.subtask-item')).map(item => {
+                const checkbox = item.querySelector('.subtask-checkbox');
+                const input = item.querySelector('.subtask-input');
+                const name = input.value.trim();
+                return {
+                    name: name,
+                    completed: checkbox.checked
+                };
+            }).filter(s => s.name) // Remove subtarefas vazias
         };
+
+        // Validações
+        if (!taskData.name) {
+            this.showToast('Nome da tarefa é obrigatório!', true);
+            return;
+        }
+        if (!taskData.startDate || !taskData.endDate) {
+            this.showToast('Datas são obrigatórias!', true);
+            return;
+        }
+        if (new Date(taskData.startDate) > new Date(taskData.endDate)) {
+            this.showToast('Data de início deve ser anterior à data de fim!', true);
+            return;
+        }
 
         if (this.editingTaskId) {
             this.updateTask(this.editingTaskId, taskData);
@@ -352,22 +388,31 @@ class TaskManager {
         document.getElementById('taskModal').classList.remove('active');
     }
 
+    // Subtasks - CORRIGIDO
     addSubtask(name = '', completed = false) {
         const container = document.getElementById('subtasksContainer');
         const subtaskId = Date.now();
-        container.insertAdjacentHTML('beforeend', `
+        const subtaskHtml = `
             <div class="subtask-item">
                 <input type="checkbox" class="subtask-checkbox" ${completed ? 'checked' : ''}>
-                <input type="text" class="subtask-input" value="${name}" placeholder="Nome da subtarefa">
+                <input type="text" class="subtask-input" value="${name}" placeholder="Digite o nome da subtarefa">
                 <button type="button" class="subtask-delete" onclick="taskManager.removeSubtask(this)">
-                    <i class="fas fa-trash"></i>
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
-        `);
+        `;
+        container.insertAdjacentHTML('beforeend', subtaskHtml);
     }
 
     removeSubtask(button) {
-        button.closest('.subtask-item').remove();
+        const subtaskItem = button.closest('.subtask-item');
+        subtaskItem.remove();
+        
+        // Se não sobrou nenhuma subtarefa, adicionar uma vazia
+        const remainingSubtasks = document.querySelectorAll('.subtask-item');
+        if (remainingSubtasks.length === 0) {
+            this.addSubtask('', false);
+        }
     }
 
     getStatusLabel(status) {
@@ -382,13 +427,20 @@ class TaskManager {
 }
 
 // Global functions for onclick handlers
-const taskManager = new TaskManager();
+let taskManager;
 
-function filterTasks() {
-    taskManager.renderTasksList();
-    taskManager.renderDashboard();
-}
+document.addEventListener('DOMContentLoaded', () => {
+    taskManager = new TaskManager();
+});
 
-function showAddTaskModal() {
-    taskManager.showAddTaskModal();
-}
+// Expor funções globais para onclick handlers
+window.taskManager = taskManager || {};
+window.filterTasks = () => {
+    if (taskManager) {
+        taskManager.renderTasksList();
+        taskManager.renderDashboard();
+    }
+};
+window.showAddTaskModal = () => {
+    if (taskManager) taskManager.showAddTaskModal();
+};
