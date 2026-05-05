@@ -1,0 +1,61 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f6fa;
+  margin: 0;
+}
+
+header {
+  background: #2f3640;
+  color: white;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.filters select {
+  margin-left: 10px;
+  padding: 5px;
+}
+
+.add-task {
+  padding: 15px;
+  background: white;
+  display: flex;
+  gap: 10px;
+}
+
+#taskContainer {
+  padding: 15px;
+}
+
+.task {
+  background: white;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-left: 5px solid gray;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.subtasks {
+  margin-left: 20px;
+}
+
+.status-not-started { border-color: gray; }
+.status-progress { border-color: blue; }
+.status-delayed { border-color: red; }
+.status-done { border-color: green; }
+
+.progress-bar {
+  height: 5px;
+  background: #ddd;
+  margin-top: 5px;
+}
+
+.progress {
+  height: 5px;
+  background: green;
+}

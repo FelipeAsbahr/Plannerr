@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Planner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>📅 Planner</h1>
+
+  <div class="filters">
+    <select id="yearFilter"></select>
+    <select id="monthFilter"></select>
+  </div>
+</header>
+
+<section class="add-task">
+  <input type="text" id="taskName" placeholder="Nome da task">
+  <input type="date" id="startDate">
+  <input type="date" id="endDate">
+  <button onclick="addTask()">Adicionar Task</button>
+</section>
+
+<section id="taskContainer"></section>
+
+<script src="script.js"></script>
+</body>
+</html>
