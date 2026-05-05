@@ -68,11 +68,11 @@
             <div class="filters">
                 <div class="filter-group">
                     <label>Filtrar por Mês:</label>
-                    <input type="month" id="monthFilter" onchange="filterTasks()">
+                    <input type="month" id="monthFilter">
                 </div>
                 <div class="filter-group">
                     <label>Status:</label>
-                    <select id="statusFilter" onchange="filterTasks()">
+                    <select id="statusFilter">
                         <option value="">Todos</option>
                         <option value="not-started">Não Iniciada</option>
                         <option value="in-progress">Em Andamento</option>
@@ -80,7 +80,7 @@
                         <option value="overdue">Atrasada</option>
                     </select>
                 </div>
-                <button class="btn-primary" onclick="showAddTaskModal()">
+                <button class="btn-primary" onclick="taskManager.showAddTaskModal()">
                     <i class="fas fa-plus"></i> Nova Tarefa
                 </button>
             </div>
@@ -94,35 +94,38 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h3 id="modalTitle">Nova Tarefa</h3>
-                    <button class="close-btn" onclick="closeModal()">&times;</button>
+                    <button class="close-btn" onclick="taskManager.closeModal()">&times;</button>
                 </div>
                 <form id="taskForm">
                     <div class="form-group">
-                        <label>Nome da Tarefa:</label>
-                        <input type="text" id="taskName" required>
+                        <label><i class="fas fa-heading"></i> Nome da Tarefa:</label>
+                        <input type="text" id="taskName" placeholder="Ex: Desenvolver novo dashboard" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-day"></i> Data Início:</label>
+                            <input type="date" id="startDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-check"></i> Data Fim:</label>
+                            <input type="date" id="endDate" required>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Data Início:</label>
-                        <input type="date" id="startDate" required>
+                        <label><i class="fas fa-align-left"></i> Descrição:</label>
+                        <textarea id="description" placeholder="Detalhes opcionais da tarefa..."></textarea>
                     </div>
                     <div class="form-group">
-                        <label>Data Fim:</label>
-                        <input type="date" id="endDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Descrição:</label>
-                        <textarea id="description"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Subtarefas:</label>
+                        <label><i class="fas fa-list-ul"></i> Subtarefas:</label>
                         <div id="subtasksContainer"></div>
-                        <button type="button" class="btn-secondary" onclick="addSubtask()">
-                            <i class="fas fa-plus"></i> Adicionar Subtarefa
-                        </button>
                     </div>
                     <div class="modal-actions">
-                        <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
-                        <button type="submit" class="btn-primary">Salvar</button>
+                        <button type="button" class="btn-secondary" onclick="taskManager.closeModal()">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Salvar Tarefa
+                        </button>
                     </div>
                 </form>
             </div>
